@@ -81,9 +81,9 @@
 
 ## 流程图
 
-- 流程图：指定 mermaid（样式流程图） 或 flow （标准流程图）解析语言
-- 时序图：指定 sequence（标准时序图） 或 mermaid（样式时序图） 解析语言
-- 甘特图：指定 mermaid 解析语言
+- 流程图：指定 mermaid（样式流程图） 或 flow （标准流程图）解析语言；
+- 时序图：指定 sequence（标准时序图） 或 mermaid（样式时序图） 解析语言；
+- 甘特图：指定 mermaid 解析语言。部分示例：
 
   ```flow
   start=>start: 接收到消息
