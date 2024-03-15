@@ -16,3 +16,9 @@
 - 安装 Android Studio
 - 配置 Android 模拟器
 - 同意 Android 协议
+
+## 构建您的第一个 Flutter 应用
+
+### 提取 widget
+
+要改为更复杂的设计，一种行之有效的方式是将此代码行提取到单独的 widget 中。为 UI 的单独逻辑部分使用单独的 widget 是在 Flutter 中管理复杂性的一种重要方法。
