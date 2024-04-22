@@ -237,3 +237,162 @@ obj.count++;
 - watch 和 watchEffect 都能响应式地执行有副作用的回调。它们之间的主要区别是追踪响应式依赖的方式：
 - watch 只追踪明确侦听的数据源。它不会追踪任何在回调中访问到的东西。另外，仅在数据源确实改变时才会触发回调。watch 会避免在发生副作用时追踪依赖，因此，我们能更加精确地控制回调函数的触发时机。
 - watchEffect，则会在副作用发生期间追踪依赖。它会在同步执行过程中，自动追踪所有能访问到的响应式属性。这更方便，而且代码往往更简洁，但有时其响应性依赖关系会不那么明确。
+
+## 插槽
+
+### 插槽内容与出口
+
+`<slot>` 元素是一个插槽出口 (slot outlet)，标示了父元素提供的插槽内容 (slot content) 将在哪里被渲染。
+
+![插槽图示](assets/slots.png)
+
+最终渲染出的 DOM 是这样：
+
+```html
+<button class="fancy-btn">Click me!</button>
+```
+
+### 渲染作用域 ​
+
+插槽内容可以访问到父组件的数据作用域，因为插槽内容本身是在父组件模板中定义的。
+
+### 默认内容
+
+在外部没有提供任何内容的情况下，可以为插槽指定默认内容。比如有这样一个 `<SubmitButton>` 组件：
+
+```html
+<button type="submit">
+  <slot></slot>
+</button>
+```
+
+如果我们想在父组件没有提供任何插槽内容时在 `<button>` 内渲染“Submit”，只需要将“Submit”写在 `<slot>` 标签之间来作为默认内容：
+
+```html
+<**button** type="submit">
+  <slot>
+    Submit
+    <!-- 默认内容 -->
+  </slot>
+</button>
+```
+
+### 具名插槽
+
+`<slot>` 元素可以有一个特殊的 attribute `name`，用来给各个插槽分配唯一的 ID，以确定每一处要渲染的内容：
+
+```html
+<div class="container">
+  <header>
+    <slot name="header"></slot>
+  </header>
+  <main>
+    <slot></slot>
+  </main>
+  <footer>
+    <slot name="footer"></slot>
+  </footer>
+</div>
+```
+
+这类带 name 的插槽被称为具名插槽 (named slots)。没有提供 name 的 <slot> 出口会隐式地命名为“default”。
+
+要为具名插槽传入内容，我们需要使用一个含 `v-slot` 指令的 `<template>` 元素，并将目标插槽的名字传给该指令：
+
+```html
+<BaseLayout>
+  <template v-slot:header>
+    <!-- header 插槽的内容放这里 -->
+  </template>
+</BaseLayout>
+```
+
+`v-slot` 有对应的简写 `#`，因此 `<template v-slot:header>` 可以简写为 `<template #header>`。其意思就是“将这部分模板片段传入子组件的 header 插槽中”。(当一个组件同时接收默认插槽和具名插槽时，所有位于顶级的非 `<template>` 节点都被隐式地视为默认插槽的内容。)
+
+![插槽图示](assets/named-slots.png)
+
+### 动态插槽名
+
+动态指令参数在 `v-slot` 上也是有效的，即可以定义下面这样的动态插槽名：
+
+```html
+<base-layout>
+  <template v-slot:[dynamicSlotName]> ... </template>
+
+  <!-- 缩写为 -->
+  <template #[dynamicSlotName]> ... </template>
+</base-layout>
+```
+
+### 作用域插槽
+
+当插槽需要使用子组件域内的数据，可以像对组件传递 props 那样，向一个插槽的出口上传递 attributes：
+
+```html
+<!-- <MyComponent> 的模板 -->
+<div>
+  <slot :text="greetingMessage" :count="1"></slot>
+</div>
+```
+
+当需要接收插槽 props 时，默认插槽通过子组件标签上的 v-slot 指令，直接接收到了一个插槽 props 对象：
+
+```html
+<MyComponent v-slot="slotProps">
+  {{ slotProps.text }} {{ slotProps.count }}
+</MyComponent>
+```
+
+子组件传入插槽的 props 作为了 v-slot 指令的值，可以在插槽内的表达式中访问。
+
+具名作用域插槽的工作方式也是类似的，插槽 props 可以作为 `v-slot` 指令的值被访问到：`v-slot:name="slotProps"`。当使用缩写时是这样：
+
+```html
+<MyComponent>
+  <template #header="headerProps"> {{ headerProps }} </template>
+</MyComponent>
+```
+
+向具名插槽中传入 props：
+
+```html
+<slot name="header" message="hello"></slot>
+```
+
+### 高级列表组件示例 ​
+
+什么样的场景才适合用到作用域插槽? 这里我们来看一个 `<FancyList>` 组件的例子。它会加载远端数据并进行列表渲染，而单个列表元素内容和样式的控制权留给使用它的父组件：
+
+```html
+<FancyList :api-url="url" :per-page="10">
+  <template #item="{ body, username, likes }">
+    <div class="item">
+      <p>{{ body }}</p>
+      <p>by {{ username }} | {{ likes }} likes</p>
+    </div>
+  </template>
+</FancyList>
+```
+
+在 `<FancyList>` 之中，我们可以多次渲染 `<slot>` 并每次都提供不同的数据 (注意我们这里使用了 v-bind 来传递插槽的 props)：
+
+```html
+<ul>
+  <li v-for="item in items">
+    <slot name="item" v-bind="item"></slot>
+  </li>
+</ul>
+```
+
+### 无渲染组件 ​
+
+上面的 `<FancyList>` 案例同时封装了可重用的逻辑 (数据获取、分页等) 和视图输出，但也将部分视图输出通过作用域插槽交给了消费者组件来管理。
+如果我们将这个概念拓展一下，一些组件可能只包括了逻辑而不需要自己渲染内容，视图输出通过作用域插槽全权交给了消费者组件。我们将这种类型的组件称为无渲染组件。
+
+## 依赖注入
+
+## 异步组件
+
+## 组合式函数
+
+在 Vue 应用的概念中，“组合式函数”(Composables) 是一个利用 Vue 的组合式 API 来封装和复用**有状态逻辑**的函数，有状态逻辑负责管理会随时间而变化的状态。一个简单的例子是跟踪当前鼠标在页面中的位置。在实际应用中，也可能是像触摸手势或与数据库的连接状态这样的更复杂的逻辑。（无状态的逻辑：接收一些输入后立刻返回所期望的输出，如日期格式化，lodash 等）
